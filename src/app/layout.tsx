@@ -5,30 +5,30 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"] });
 
-const SITE_URL = process.env.PUBLIC_URL?.trim() || "https://jspix.onrender.com";
+const SITE_URL = process.env.PUBLIC_URL?.trim() || "https://mjpix.onrender.com";
 const DESCRIPTION = "Gateway de cobranças Pix especializada em Pagar.me. Gere cobranças em segundos, acompanhe os pagamentos em tempo real e saque para a sua conta quando quiser.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "JSPix · Pagamentos Pix", template: "%s · JSPix" },
+  title: { default: "MJPix · Pagamentos Pix", template: "%s · MJPix" },
   description: DESCRIPTION,
-  applicationName: "JSPix",
+  applicationName: "MJPix",
   keywords: ["pix", "cobrança pix", "gateway de pagamento", "pagar.me", "qr code pix", "receber por pix"],
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    siteName: "JSPix",
+    siteName: "MJPix",
     url: "/",
-    title: "JSPix — Gateway Pix especializada em Pagar.me",
+    title: "MJPix — Gateway Pix especializada em Pagar.me",
     description: DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "JSPix — Gateway Pix especializada em Pagar.me",
+    title: "MJPix — Gateway Pix especializada em Pagar.me",
     description: DESCRIPTION,
   },
   robots: { index: true, follow: true },
-  appleWebApp: { capable: true, title: "JSPix", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "MJPix", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   ],
 };
 
-const themeScript = `(function(){try{var t=localStorage.getItem('jspix-theme')||localStorage.getItem('jpix-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem('mjpix-theme')||localStorage.getItem('mpix-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

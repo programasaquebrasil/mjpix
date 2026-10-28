@@ -17,7 +17,7 @@ export function Logo({ className, compact = false, light = false }: { className?
       <LogoMark />
       {!compact && (
         <span className={cn("text-[19px] tracking-tight", light ? "text-white" : "text-foreground")}>
-          JS<span className={light ? "text-blue-200" : "text-primary"}>Pix</span>
+          MJ<span className={light ? "text-emerald-200" : "text-primary"}>Pix</span>
         </span>
       )}
     </span>

@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: mjpix
+    runtime: node
+    plan: standard
+    region: virginia
+    buildCommand: npm ci && npx prisma migrate deploy && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: TZ
+        value: America/Sao_Paulo
+      - key: CRON_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SECRETS_ENCRYPTION_KEY
+        sync: false
+      - key: PAGARME_SECRET_KEY
+        sync: false
+      - key: PAGARME_ENV
+        value: test
+      - key: PUBLIC_URL
+        value: https://mjpix.onrender.com
+      - key: LEGACY_PUBLIC_KEY
+        sync: false
+      - key: LEGACY_SECRET_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:barnabe@gmail.com
+      - key: LEGACY_WEBHOOK_SECRET
+        sync: false

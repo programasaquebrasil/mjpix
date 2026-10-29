@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { BALANCE_TAG, createTransfer, getRecipientBalance, getRecipientBalanceCached, listRecipientsCached, listRecipientWithdrawals, type RemoteWithdrawal, type TransferResult } from "@/lib/pagarme";
 import { getSetting } from "@/lib/settings";
+import { getSplitDefault } from "@/lib/split";
 import { formatBRL } from "@/lib/utils";
 import type { Prisma, Withdrawal } from "@prisma/client";
 
@@ -19,12 +20,20 @@ export { WITHDRAWAL_STATUS, FINAL_WITHDRAWAL_STATUSES, normalizeWithdrawalStatus
 export type { WithdrawRecipient, WithdrawState, WithdrawalStatus, WithdrawalDTO } from "@/lib/withdrawal-status";
 import { WITHDRAWAL_STATUS, normalizeWithdrawalStatus, type WithdrawRecipient, type WithdrawState, type WithdrawalStatus, type WithdrawalDTO } from "@/lib/withdrawal-status";
 
-/** Recebedores da conta com saldo (cache de 20 s), do maior disponível para o menor. */
+/** Recebedores da conta com saldo (cache de 20 s), do maior disponível para o menor. Filtra apenas o responsável do split se houver. */
 export async function loadWithdrawRecipients(): Promise<{ recipients: WithdrawRecipient[]; error: string | null }> {
   try {
     const list = await listRecipientsCached();
+
+    // Busca o split padrão para filtrar apenas o responsável
+    const splitDefault = await getSplitDefault();
+    const responsibleId = splitDefault.enabled ? splitDefault.rules.find((r) => r.responsible)?.recipientId : null;
+
+    // Filtra: se houver split ativo, mostra só o responsável; senão mostra todos
+    const filteredList = responsibleId ? list.filter((r) => r.id === responsibleId) : list;
+
     const recipients = await Promise.all(
-      list.map(async (r) => {
+      filteredList.map(async (r) => {
         try {
           const b = await getRecipientBalanceCached(r.id);
           return { id: r.id, name: r.name, document: r.document, status: r.status, available: b.available, waiting: b.waiting, balanceError: null };
@@ -43,11 +52,21 @@ export async function loadWithdrawRecipients(): Promise<{ recipients: WithdrawRe
 /**
  * Valida, confere o saldo na hora (o da tela pode estar velho) e cria a transferência. Quem chama checa a sessão.
  * O saque fica registrado em Withdrawal para o histórico; se a gravação falhar o saque já aconteceu, então só loga.
+ * Só permite saque do recebedor responsável pelo split, se houver.
  */
 export async function withdraw(recipientId: string, amountCents: number, idempotencyKey: string, clientId: string | null = null): Promise<WithdrawState> {
   if (!/^r[ep]_[A-Za-z0-9]+$/.test(recipientId)) return { error: "Recebedor inválido" };
   if (!Number.isInteger(amountCents) || amountCents < 1) return { error: "Informe um valor maior que zero" };
   if (!/^[A-Za-z0-9-]{8,64}$/.test(idempotencyKey)) return { error: "Requisição inválida. Recarregue a página." };
+
+  // Valida se o recebedor é o responsável do split
+  const splitDefault = await getSplitDefault();
+  if (splitDefault.enabled) {
+    const responsibleId = splitDefault.rules.find((r) => r.responsible)?.recipientId;
+    if (responsibleId && recipientId !== responsibleId) {
+      return { error: "Apenas o recebedor responsável pode fazer saques." };
+    }
+  }
   let fee = 0;
   try {
     const [balance, configuredFee] = await Promise.all([getRecipientBalance(recipientId), getWithdrawFee()]);

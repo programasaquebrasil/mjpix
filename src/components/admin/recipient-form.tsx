@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Plus, Trash2, User, Building2, X } from "lucide-react";
+import { useState, useTransition } from "react";
 import { AdminForm } from "@/components/admin/form";
 import { BankSelect } from "@/components/admin/bank-select";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Select } from "@/components/ui/select";
 import { maskCep, maskCnpj, maskCpf, maskPhone } from "@/lib/masks";
 import { MAX_PARTNERS, UFS } from "@/lib/recipient-input";
 import { cn } from "@/lib/utils";
-import { createRecipientAction } from "@/app/admin/actions";
+import { createRecipientAction, deleteSavedRecipientAction } from "@/app/admin/actions";
+import type { SavedRecipient } from "@prisma/client";
 
 type Mask = (v: string) => string;
 const masked = (fn: Mask) => ({ onInput: (e: React.FormEvent<HTMLInputElement>) => (e.currentTarget.value = fn(e.currentTarget.value)) });
@@ -135,7 +136,74 @@ function PersonFields({ prefix, who }: { prefix: string; who: string }) {
   );
 }
 
-export function RecipientForm() {
+function SavedRecipientPicker({ items, onSelect }: { items: SavedRecipient[]; onSelect: (r: SavedRecipient) => void }) {
+  const [pending, startTransition] = useTransition();
+  if (items.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>Recebedores salvos</CardTitle>
+          <CardDescription>Clique para preencher o formulário automaticamente</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-2 sm:grid-cols-2">
+        {items.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onSelect(r)}
+            className="group relative flex items-start gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-[rgb(var(--primary))] hover:bg-accent"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--primary)/0.1)] text-[rgb(var(--primary))]">
+              {r.documentType === "cnpj" ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{r.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{r.document}</p>
+              <p className="truncate text-xs text-muted-foreground">Banco {r.bankCode} · Ag {r.agencyNumber} · Conta {r.accountNumber}</p>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); startTransition(async () => { await deleteSavedRecipientAction(r.id); }); }}
+              disabled={pending}
+              className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+              title="Remover recebedor salvo"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </button>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function fillForm(form: HTMLFormElement, r: SavedRecipient) {
+  const set = (name: string, value: string) => {
+    const el = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+    if (el) el.value = value;
+  };
+  set("name", r.name);
+  set("company_name", r.name);
+  set("document", r.document);
+  set("email", r.email);
+  set("phone", r.phone);
+  set("holder_name", r.accountHolder);
+  set("bank", r.bankCode);
+  set("branch_number", r.agencyNumber);
+  set("account_number", r.accountNumber);
+  set("account_type", r.accountType === "p" ? "savings" : "checking");
+  set("addr_zip_code", r.zipCode);
+  set("addr_street", r.street);
+  set("addr_street_number", r.streetNumber);
+  set("addr_complementary", r.complement ?? "");
+  set("addr_neighborhood", r.neighborhood);
+  set("addr_city", r.city);
+  set("addr_state", r.state);
+}
+
+export function RecipientForm({ savedRecipients = [] }: { savedRecipients?: SavedRecipient[] }) {
   const [type, setType] = useState<"individual" | "corporation">("individual");
   const [partners, setPartners] = useState(1);
   const [transfer, setTransfer] = useState(false);
@@ -143,10 +211,20 @@ export function RecipientForm() {
   const [anticipation, setAnticipation] = useState(false);
   const pj = type === "corporation";
 
+  function handleSelect(r: SavedRecipient) {
+    setType(r.documentType === "cnpj" ? "corporation" : "individual");
+    requestAnimationFrame(() => {
+      const form = document.querySelector<HTMLFormElement>("form");
+      if (form) fillForm(form, r);
+    });
+  }
+
   return (
     <AdminForm action={createRecipientAction} submitLabel="Cadastrar recebedor na Pagar.me" className="space-y-5">
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="partner_count" value={partners} />
+
+      {savedRecipients.length > 0 && <SavedRecipientPicker items={savedRecipients} onSelect={handleSelect} />}
 
       <div className="grid grid-cols-2 gap-2 rounded-lg border bg-card p-1">
         {(
@@ -285,6 +363,11 @@ export function RecipientForm() {
       <Section title="Identificação interna">
         <Field label="Código" name="code" hint="Opcional. Referência única sua para este recebedor." className="sm:col-span-2" />
       </Section>
+
+      <label className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm">
+        <input type="checkbox" name="save_recipient" defaultChecked className="h-4 w-4 accent-[rgb(var(--primary))]" />
+        Salvar dados deste recebedor para reutilizar depois
+      </label>
     </AdminForm>
   );
 }

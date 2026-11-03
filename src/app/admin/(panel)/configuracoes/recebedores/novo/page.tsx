@@ -4,11 +4,13 @@ import { requireAdmin } from "@/lib/admin";
 import { PageHeader } from "@/components/admin/page-header";
 import { RecipientForm } from "@/components/admin/recipient-form";
 import { Button } from "@/components/ui/button";
+import { listSavedRecipients } from "@/lib/saved-recipients";
 
 export const metadata = { title: "Novo recebedor" };
 
 export default async function NovoRecebedorPage() {
   await requireAdmin();
+  const savedRecipients = await listSavedRecipients();
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <PageHeader title="Novo recebedor" description="Cadastro direto na Pagar.me com os dados exigidos pelo contrato KYC.">
@@ -18,7 +20,7 @@ export default async function NovoRecebedorPage() {
           </Button>
         </Link>
       </PageHeader>
-      <RecipientForm />
+      <RecipientForm savedRecipients={savedRecipients} />
     </div>
   );
 }

@@ -164,3 +164,30 @@ model PushSubscription {
   @@index([clientId])
   @@index([adminId])
 }
+
+/// Recebedor salvo para reutilização rápida (banco, agência, conta, etc)
+model SavedRecipient {
+  id                      String   @id @default(cuid())
+  name                    String   @db.VarChar(120)
+  documentType            String   // cpf ou cnpj
+  document                String
+  email                   String
+  phone                   String
+  bankCode                String
+  agencyNumber            String
+  accountNumber           String
+  accountType             String   // c (corrente) ou p (poupança)
+  accountHolder           String   @db.VarChar(120)
+  accountHolderDocument   String
+  street                  String   @db.VarChar(120)
+  streetNumber            String   @db.VarChar(20)
+  complement              String?  @db.VarChar(120)
+  neighborhood            String   @db.VarChar(120)
+  zipCode                 String
+  city                    String   @db.VarChar(120)
+  state                   String   @db.VarChar(2)
+  createdAt               DateTime @default(now())
+
+  @@unique([bankCode, agencyNumber, accountNumber])
+  @@index([createdAt])
+}

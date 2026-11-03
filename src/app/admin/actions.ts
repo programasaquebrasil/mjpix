@@ -23,6 +23,7 @@ import { cancelRemote, isConfigured } from "@/lib/gateway";
 import { reconcileCharge } from "@/lib/charges";
 import { deleteSettings, setSetting } from "@/lib/settings";
 import { processPagarmeEvent } from "@/lib/webhooks";
+import { saveSavedRecipient, deleteSavedRecipient } from "@/lib/saved-recipients";
 
 export type FormState = { error?: string; ok?: string };
 
@@ -384,6 +385,31 @@ export async function createRecipientAction(_: FormState, fd: FormData): Promise
   try {
     const r = await createRecipient(built.payload);
     updateTag(RECIPIENTS_TAG);
+    if (fd.get("save_recipient") === "on") {
+      const type = String(fd.get("type") ?? "individual");
+      try {
+        await saveSavedRecipient({
+          name: String(fd.get(type === "corporation" ? "company_name" : "name") ?? ""),
+          documentType: type === "corporation" ? "cnpj" : "cpf",
+          document: String(fd.get("document") ?? ""),
+          email: String(fd.get("email") ?? ""),
+          phone: String(fd.get("phone") ?? ""),
+          bankCode: String(fd.get("bank") ?? ""),
+          agencyNumber: String(fd.get("branch_number") ?? ""),
+          accountNumber: String(fd.get("account_number") ?? ""),
+          accountType: String(fd.get("account_type")) === "savings" ? "p" : "c",
+          accountHolder: String(fd.get("holder_name") ?? ""),
+          accountHolderDocument: String(fd.get("document") ?? ""),
+          street: String(fd.get("addr_street") ?? ""),
+          streetNumber: String(fd.get("addr_street_number") ?? ""),
+          complement: String(fd.get("addr_complementary") ?? "") || null,
+          neighborhood: String(fd.get("addr_neighborhood") ?? ""),
+          zipCode: String(fd.get("addr_zip_code") ?? ""),
+          city: String(fd.get("addr_city") ?? ""),
+          state: String(fd.get("addr_state") ?? ""),
+        });
+      } catch {}
+    }
     return { ok: `Recebedor criado (${r.id}${r.status ? `, status ${r.status}` : ""}). Gere o link de prova de vida na lista de recebedores.` };
   } catch (e) {
     return { error: `A Pagar.me recusou o cadastro: ${(e as Error).message}` };
@@ -500,4 +526,15 @@ export async function changePassword(_: FormState, fd: FormData): Promise<FormSt
   if (next !== confirm) return { error: "As senhas não conferem" };
   await db.admin.update({ where: { id: admin.id }, data: { passwordHash: await bcrypt.hash(next, 12) } });
   return { ok: "Senha alterada" };
+}
+
+export async function deleteSavedRecipientAction(id: string): Promise<FormState> {
+  await requireAdmin();
+  try {
+    await deleteSavedRecipient(id);
+    revalidatePath("/admin/configuracoes/recebedores/novo");
+    return { ok: "Recebedor salvo removido" };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }

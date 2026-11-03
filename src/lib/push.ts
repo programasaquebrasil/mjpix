@@ -71,18 +71,18 @@ export async function notifyChargePaid(chargeId: string) {
 }
 
 /**
- * Avisa todos os admins inscritos sobre um saque automático realizado.
+ * Avisa todos os inscritos (admins e clientes) sobre um saque realizado.
  */
 export async function notifyWithdrawal(opts: { amountCents: number; feeCents: number; recipientName: string; recipientId: string; gatewayId: string }) {
   try {
     if (!configure()) return;
-    const subs = await db.pushSubscription.findMany({ where: { adminId: { not: null } } });
+    const subs = await db.pushSubscription.findMany();
     if (subs.length === 0) return;
     const amount = formatBRL(opts.amountCents);
     const fee = opts.feeCents > 0 ? ` (tarifa ${formatBRL(opts.feeCents)})` : "";
     const payload: WithdrawalPayload = {
       type: "withdrawal",
-      title: `Saque automático · ${amount}`,
+      title: `Saque realizado · ${amount}`,
       body: `${opts.recipientName}${fee}\nID: ${opts.gatewayId}`,
       url: "/admin/financeiro/saques",
       tag: `withdrawal-${opts.gatewayId}`,

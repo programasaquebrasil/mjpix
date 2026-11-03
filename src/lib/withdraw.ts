@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { BALANCE_TAG, createTransfer, getRecipientBalance, getRecipientBalanceCached, listRecipientsCached, listRecipientWithdrawals, type RemoteWithdrawal, type TransferResult } from "@/lib/pagarme";
 import { getSetting } from "@/lib/settings";
 import { getSplitDefault } from "@/lib/split";
+import { notifyWithdrawal } from "@/lib/push";
 import { formatBRL } from "@/lib/utils";
 import type { Prisma, Withdrawal } from "@prisma/client";
 
@@ -77,7 +78,15 @@ export async function withdraw(recipientId: string, amountCents: number, idempot
     }
     const transfer = await createTransfer(recipientId, amountCents, idempotencyKey);
     revalidateTag(BALANCE_TAG, "max");
+    const recipientName = (await listRecipientsCached().catch(() => []))?.find((r) => r.id === recipientId)?.name ?? recipientId;
     await recordWithdrawal(transfer, recipientId, clientId, fee);
+    notifyWithdrawal({
+      amountCents: transfer.amount,
+      feeCents: transfer.fee ?? fee,
+      recipientName,
+      recipientId,
+      gatewayId: transfer.id,
+    }).catch(() => {});
     return { transfer };
   } catch (e) {
     const msg = (e as Error).message;

@@ -121,14 +121,14 @@ export function PaymentAlerts({ scope, vapidKey }: { scope: Scope; vapidKey: str
   // Mensagens do service worker (push recebido com a aba aberta) e do PixView (pagamento visto na própria tela).
   useEffect(() => {
     const onSw = (e: MessageEvent) => {
-      if (e.data?.source === "jspix-sw" && e.data.type === "paid") announce({ chargeId: e.data.chargeId, amountCents: e.data.amountCents, description: e.data.body, url: e.data.url });
+      if (e.data?.source === "mjpix-sw" && e.data.type === "paid") announce({ chargeId: e.data.chargeId, amountCents: e.data.amountCents, description: e.data.body, url: e.data.url });
     };
     const onLocal = (e: Event) => announce((e as CustomEvent<Paid>).detail);
     navigator.serviceWorker?.addEventListener("message", onSw);
-    window.addEventListener("jspix:paid", onLocal);
+    window.addEventListener("mjpix:paid", onLocal);
     return () => {
       navigator.serviceWorker?.removeEventListener("message", onSw);
-      window.removeEventListener("jspix:paid", onLocal);
+      window.removeEventListener("mjpix:paid", onLocal);
     };
   }, [announce]);
 

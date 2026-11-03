@@ -1,4 +1,4 @@
-/* Service worker do JSPix: recebe o push de "Pix pago", mostra a notificação e avisa as abas abertas para tocar o som. */
+/* Service worker do MJPix: recebe notificações push (pagamento, saque) e avisa as abas abertas. */
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -7,14 +7,14 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "JSPix", body: event.data ? event.data.text() : "" };
+    data = { title: "MJPix", body: event.data ? event.data.text() : "" };
   }
   const title = data.title || "Pix recebido";
   const options = {
     body: data.body || "",
     icon: "/apple-icon",
     badge: "/icon",
-    tag: data.tag || "jspix-paid",
+    tag: data.tag || "mjpix-push",
     renotify: true,
     vibrate: [120, 60, 120, 60, 240],
     data: { url: data.url || "/app", chargeId: data.chargeId, amountCents: data.amountCents },
@@ -22,7 +22,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      for (const w of windows) w.postMessage({ source: "jspix-sw", ...data });
+      for (const w of windows) w.postMessage({ source: "mjpix-sw", ...data });
       await self.registration.showNotification(title, options);
     })(),
   );

@@ -12,6 +12,14 @@ export type PaidPayload = {
   tag: string;
 };
 
+export type WithdrawalPayload = {
+  type: "withdrawal";
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+};
+
 export function vapidPublicKey() {
   return process.env.VAPID_PUBLIC_KEY?.trim() || null;
 }
@@ -20,7 +28,7 @@ function configure() {
   const pub = process.env.VAPID_PUBLIC_KEY?.trim();
   const priv = process.env.VAPID_PRIVATE_KEY?.trim();
   if (!pub || !priv) return false;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "mailto:admin@jspix.app", pub, priv);
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "mailto:admin@mjpix.app", pub, priv);
   return true;
 }
 
@@ -59,5 +67,38 @@ export async function notifyChargePaid(chargeId: string) {
     );
   } catch (e) {
     console.error("[push] notifyChargePaid:", (e as Error).message);
+  }
+}
+
+/**
+ * Avisa todos os admins inscritos sobre um saque automático realizado.
+ */
+export async function notifyWithdrawal(opts: { amountCents: number; feeCents: number; recipientName: string; recipientId: string; gatewayId: string }) {
+  try {
+    if (!configure()) return;
+    const subs = await db.pushSubscription.findMany({ where: { adminId: { not: null } } });
+    if (subs.length === 0) return;
+    const amount = formatBRL(opts.amountCents);
+    const fee = opts.feeCents > 0 ? ` (tarifa ${formatBRL(opts.feeCents)})` : "";
+    const payload: WithdrawalPayload = {
+      type: "withdrawal",
+      title: `Saque automático · ${amount}`,
+      body: `${opts.recipientName}${fee}\nID: ${opts.gatewayId}`,
+      url: "/admin/financeiro/saques",
+      tag: `withdrawal-${opts.gatewayId}`,
+    };
+    await Promise.all(
+      subs.map(async (s) => {
+        try {
+          await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 3600, urgency: "normal" });
+        } catch (e) {
+          const status = (e as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) await db.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+          else console.error("[push] falha ao enviar notificação de saque:", status, (e as Error).message);
+        }
+      }),
+    );
+  } catch (e) {
+    console.error("[push] notifyWithdrawal:", (e as Error).message);
   }
 }

@@ -40,11 +40,16 @@ export async function markPaid(chargeId: string, paidAt: Date, gatewayFeeCents?:
     return c;
   }
   const ourFeeCents = computeOurFee(c.amountCents, Number(c.feePercent), c.feeFixedCents);
-  // Custo da gateway: o informado por ela ou, na falta, a estimativa configurada no admin, congelada aqui.
   const fee = gatewayFeeCents ?? Math.round((c.amountCents * Number(await getSetting("gateway_fee_percent"))) / 100);
-  const paid = await db.charge.update({ where: { id: chargeId }, data: { status: "paid", paidAt, ourFeeCents, gatewayFeeCents: c.gateway === "simulated" ? 0 : fee } });
-  await notifyChargePaid(chargeId);
-  tryAutoTransfer(chargeId).catch(() => {});
+  const { count } = await db.charge.updateMany({
+    where: { id: chargeId, status: { not: "paid" } },
+    data: { status: "paid", paidAt, ourFeeCents, gatewayFeeCents: c.gateway === "simulated" ? 0 : fee },
+  });
+  const paid = await db.charge.findUniqueOrThrow({ where: { id: chargeId } });
+  if (count > 0) {
+    await notifyChargePaid(chargeId);
+    tryAutoTransfer(chargeId).catch(() => {});
+  }
   return paid;
 }
 

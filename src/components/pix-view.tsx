@@ -52,7 +52,7 @@ export function PixView({ initial }: { initial: ChargeDTO }) {
       if (res.ok) {
         const next = (await res.json()) as ChargeDTO;
         if (next.status === "paid") {
-          window.dispatchEvent(new CustomEvent("jspix:paid", { detail: { chargeId: next.id, amountCents: next.amountCents, description: next.description, silentToast: true } }));
+          window.dispatchEvent(new CustomEvent("mjpix:paid", { detail: { chargeId: next.id, amountCents: next.amountCents, description: next.description, silentToast: true } }));
         }
         setCharge(next);
       }

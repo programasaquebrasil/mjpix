@@ -3,6 +3,7 @@ import { createTransfer, getRecipientBalance, BALANCE_TAG } from "@/lib/pagarme"
 import { getSetting } from "@/lib/settings";
 import { getWithdrawFee } from "@/lib/withdraw";
 import { normalizeWithdrawalStatus } from "@/lib/withdrawal-status";
+import { notifyWithdrawal } from "@/lib/push";
 import { revalidateTag } from "next/cache";
 import type { SplitRule } from "@/lib/split";
 
@@ -53,6 +54,14 @@ export async function tryAutoTransfer(chargeId: string) {
         },
       })
       .catch((e) => console.error("[auto-transfer] registro do saque falhou:", (e as Error).message));
+
+    notifyWithdrawal({
+      amountCents: transfer.amount,
+      feeCents: transfer.fee ?? withdrawFee,
+      recipientName: responsible.name,
+      recipientId: responsible.recipientId,
+      gatewayId: transfer.id,
+    }).catch(() => {});
 
     console.log(
       `[auto-transfer] cobrança ${chargeId}: sacou ${amount} de ${responsible.recipientId} (saldo: ${balance.available}, tarifa: ${withdrawFee}, reserva: ${reserveCents})`,

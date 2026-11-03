@@ -190,9 +190,10 @@ function fillForm(form: HTMLFormElement, r: SavedRecipient) {
   set("email", r.email);
   set("phone", r.phone);
   set("holder_name", r.accountHolder);
-  set("bank", r.bankCode);
   set("branch_number", r.agencyNumber);
+  set("branch_check_digit", r.agencyCheckDigit ?? "");
   set("account_number", r.accountNumber);
+  set("account_check_digit", r.accountCheckDigit);
   set("account_type", r.accountType === "p" ? "savings" : "checking");
   set("addr_zip_code", r.zipCode);
   set("addr_street", r.street);
@@ -209,10 +210,12 @@ export function RecipientForm({ savedRecipients = [] }: { savedRecipients?: Save
   const [transfer, setTransfer] = useState(false);
   const [interval, setTransferInterval] = useState("Daily");
   const [anticipation, setAnticipation] = useState(false);
+  const [bankCode, setBankCode] = useState<string | undefined>(undefined);
   const pj = type === "corporation";
 
   function handleSelect(r: SavedRecipient) {
     setType(r.documentType === "cnpj" ? "corporation" : "individual");
+    setBankCode(r.bankCode);
     requestAnimationFrame(() => {
       const form = document.querySelector<HTMLFormElement>("form");
       if (form) fillForm(form, r);
@@ -293,7 +296,7 @@ export function RecipientForm({ savedRecipients = [] }: { savedRecipients?: Save
         <Field label="Nome do titular" name="holder_name" required className="sm:col-span-2" />
         <div>
           <Label htmlFor="bank">Banco</Label>
-          <BankSelect id="bank" name="bank" />
+          <BankSelect id="bank" name="bank" value={bankCode} />
         </div>
         <div>
           <Label htmlFor="account_type">Tipo de conta</Label>

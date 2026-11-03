@@ -6,9 +6,13 @@ import { BANKS, bankLabel, normalize } from "@/lib/banks";
 import { cn } from "@/lib/utils";
 
 /** Seletor de banco com busca por nome ou código. Envia só o código (campo `name`). */
-export function BankSelect({ name, id }: { name: string; id: string }) {
-  const [code, setCode] = useState("");
+export function BankSelect({ name, id, value: externalValue }: { name: string; id: string; value?: string }) {
+  const [code, setCode] = useState(externalValue ?? "");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (externalValue !== undefined) setCode(externalValue);
+  }, [externalValue]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const box = useRef<HTMLDivElement>(null);

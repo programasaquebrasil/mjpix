@@ -175,7 +175,9 @@ model SavedRecipient {
   phone                   String
   bankCode                String
   agencyNumber            String
+  agencyCheckDigit        String?  @db.VarChar(2)
   accountNumber           String
+  accountCheckDigit       String   @default("") @db.VarChar(2)
   accountType             String   // c (corrente) ou p (poupança)
   accountHolder           String   @db.VarChar(120)
   accountHolderDocument   String

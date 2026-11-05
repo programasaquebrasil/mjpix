@@ -173,6 +173,10 @@ model SavedRecipient {
   document                String
   email                   String
   phone                   String
+  birthdate               String?  @db.VarChar(10)
+  professionalOccupation  String?  @db.VarChar(120)
+  monthlyIncome           String?  @db.VarChar(20)
+  motherName              String?  @db.VarChar(120)
   bankCode                String
   agencyNumber            String
   agencyCheckDigit        String?  @db.VarChar(2)
@@ -184,6 +188,7 @@ model SavedRecipient {
   street                  String   @db.VarChar(120)
   streetNumber            String   @db.VarChar(20)
   complement              String?  @db.VarChar(120)
+  referencePoint          String?  @db.VarChar(120)
   neighborhood            String   @db.VarChar(120)
   zipCode                 String
   city                    String   @db.VarChar(120)

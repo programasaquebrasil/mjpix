@@ -189,6 +189,10 @@ function fillForm(form: HTMLFormElement, r: SavedRecipient) {
   set("document", r.document);
   set("email", r.email);
   set("phone", r.phone);
+  set("birthdate", r.birthdate ?? "");
+  set("professional_occupation", r.professionalOccupation ?? "");
+  set("monthly_income", r.monthlyIncome ?? "");
+  set("mother_name", r.motherName ?? "");
   set("holder_name", r.accountHolder);
   set("branch_number", r.agencyNumber);
   set("branch_check_digit", r.agencyCheckDigit ?? "");
@@ -199,6 +203,7 @@ function fillForm(form: HTMLFormElement, r: SavedRecipient) {
   set("addr_street", r.street);
   set("addr_street_number", r.streetNumber);
   set("addr_complementary", r.complement ?? "");
+  set("addr_reference_point", r.referencePoint ?? "");
   set("addr_neighborhood", r.neighborhood);
   set("addr_city", r.city);
   set("addr_state", r.state);
